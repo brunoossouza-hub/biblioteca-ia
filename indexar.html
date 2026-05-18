@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Indexador — Biblioteca IA</title>
+<style>
+:root{--bg:#0f0f0f;--bg2:#181818;--bg3:#222;--border:#2a2a2a;--text:#e4e0d8;--text2:#8a877f;--text3:#4a4845;--accent:#c8a96e;--green:#5aad7a;--green-bg:#0e2018;--red:#d46060;--red-bg:#1e0e0e;--amber:#d4903a;--amber-bg:#1e1408;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Georgia',serif;background:var(--bg);color:var(--text);min-height:100vh;padding:2rem;}
+.wrap{max-width:680px;margin:0 auto;}
+h1{font-size:20px;font-weight:normal;color:var(--accent);margin-bottom:6px;}
+.sub{font-size:13px;color:var(--text3);margin-bottom:2rem;font-family:sans-serif;}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:1.5rem;margin-bottom:1.25rem;}
+.card h2{font-size:14px;font-weight:normal;color:var(--text);margin-bottom:8px;}
+.card p{font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:10px;font-family:sans-serif;}
+.field-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px;font-family:sans-serif;}
+input[type=text],input[type=password]{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:9px 12px;color:var(--text);font-size:13px;font-family:sans-serif;outline:none;margin-bottom:10px;}
+input::placeholder{color:var(--text3);}
+.btn{background:var(--accent);color:var(--bg);border:none;border-radius:6px;padding:10px 20px;font-size:13px;cursor:pointer;font-family:sans-serif;transition:background .15s;}
+.btn:hover{background:#a08852;}
+.btn:disabled{background:var(--bg3);color:var(--text3);cursor:not-allowed;}
+.btn-sm{padding:7px 14px;font-size:12px;}
+.log{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:1rem;font-family:'Courier New',monospace;font-size:12px;line-height:1.8;max-height:400px;overflow-y:auto;margin-top:12px;}
+.log .ok{color:var(--green);}
+.log .err{color:var(--red);}
+.log .info{color:var(--text2);}
+.log .warn{color:var(--amber);}
+.progress{background:var(--bg3);border-radius:20px;height:6px;margin:10px 0;}
+.progress-bar{background:var(--accent);height:6px;border-radius:20px;transition:width .3s;}
+.book-list{display:flex;flex-direction:column;gap:6px;max-height:300px;overflow-y:auto;}
+.book-item{display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--bg3);border-radius:6px;font-size:13px;font-family:sans-serif;}
+.book-item input[type=checkbox]{width:auto;margin:0;}
+.book-status{margin-left:auto;font-size:11px;padding:2px 8px;border-radius:20px;}
+.s-pending{background:var(--bg);color:var(--text3);border:1px solid var(--border);}
+.s-ok{background:var(--green-bg);color:var(--green);}
+.s-err{background:var(--red-bg);color:var(--red);}
+.s-running{background:var(--amber-bg);color:var(--amber);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Indexador — Biblioteca IA</h1>
+  <p class="sub">Processa os PDFs do Google Drive e salva os vetores no Pinecone. Rode uma vez por livro.</p>
+
+  <div class="card">
+    <h2>🔑 Credenciais</h2>
+    <div class="field-label">Chave Gemini</div>
+    <input type="password" id="gemini-key" placeholder="AIzaSy..."/>
+    <div class="field-label">Pinecone API Key</div>
+    <input type="password" id="pinecone-key" placeholder="pcsk_..."/>
+    <div class="field-label">Pinecone Index Host</div>
+    <input type="text" id="pinecone-host" placeholder="https://biblioteca-ia-xxxx.svc.aped-xxxx.pinecone.io"/>
+    <div class="field-label">OAuth Client ID (Google Drive)</div>
+    <input type="text" id="client-id" placeholder="123...googleusercontent.com"/>
+    <div class="field-label">ID da pasta no Drive</div>
+    <input type="text" id="folder-id" placeholder="1aBcDeFgHiJk..."/>
+    <button class="btn btn-sm" onclick="salvarCreds()">Salvar credenciais</button>
+    <div id="creds-saved" style="font-size:12px;color:var(--green);margin-top:6px;display:none;">✓ Salvo no browser</div>
+  </div>
+
+  <div class="card">
+    <h2>📁 Livros para indexar</h2>
+    <p>Conecte o Drive para ver os PDFs disponíveis na sua pasta.</p>
+    <button class="btn btn-sm" onclick="conectarDrive()" id="btn-drive">Conectar Drive</button>
+    <div class="book-list" id="book-list" style="margin-top:12px;display:none;"></div>
+  </div>
+
+  <div class="card">
+    <h2>⚙️ Indexar</h2>
+    <p>Selecione os livros acima e clique em iniciar. Cada PDF será dividido em trechos de ~800 palavras, vetorizado com Gemini e salvo no Pinecone.</p>
+    <button class="btn" onclick="iniciarIndexacao()" id="btn-indexar" disabled>Iniciar indexação</button>
+    <div class="progress" style="display:none;" id="progress-wrap">
+      <div class="progress-bar" id="progress-bar" style="width:0%"></div>
+    </div>
+    <div class="log" id="log" style="display:none;"></div>
+  </div>
+</div>
+
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script>
+let driveToken=null;
+let driveFiles=[];
+
+function cfg(){try{return JSON.parse(localStorage.getItem('rag_cfg')||'{}');}catch(e){return{};}}
+function salvarCreds(){
+  const c={gemini:document.getElementById('gemini-key').value.trim(),pineconeKey:document.getElementById('pinecone-key').value.trim(),pineconeHost:document.getElementById('pinecone-host').value.trim(),clientId:document.getElementById('client-id').value.trim(),folderId:document.getElementById('folder-id').value.trim()};
+  localStorage.setItem('rag_cfg',JSON.stringify(c));
+  document.getElementById('creds-saved').style.display='block';
+  setTimeout(()=>document.getElementById('creds-saved').style.display='none',2000);
+}
+
+// Load saved
+window.onload=()=>{
+  const c=cfg();
+  if(c.gemini)document.getElementById('gemini-key').value=c.gemini;
+  if(c.pineconeKey)document.getElementById('pinecone-key').value=c.pineconeKey;
+  if(c.pineconeHost)document.getElementById('pinecone-host').value=c.pineconeHost;
+  if(c.clientId)document.getElementById('client-id').value=c.clientId;
+  if(c.folderId)document.getElementById('folder-id').value=c.folderId;
+};
+
+function conectarDrive(){
+  const c=cfg();
+  if(!c.clientId){alert('Salve o Client ID primeiro.');return;}
+  const client=google.accounts.oauth2.initTokenClient({
+    client_id:c.clientId,
+    scope:'https://www.googleapis.com/auth/drive.readonly',
+    callback:async(resp)=>{
+      if(resp.access_token){driveToken=resp.access_token;await listarPDFs();}
+    }
+  });
+  client.requestAccessToken();
+}
+
+async function listarPDFs(){
+  const c=cfg();
+  const q=`'${c.folderId}' in parents and mimeType='application/pdf' and trashed=false`;
+  const res=await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id,name,size)&pageSize=50`,{headers:{Authorization:`Bearer ${driveToken}`}});
+  const data=await res.json();
+  driveFiles=data.files||[];
+  const list=document.getElementById('book-list');
+  list.style.display='flex';
+  list.innerHTML=driveFiles.map((f,i)=>`
+    <div class="book-item">
+      <input type="checkbox" id="f${i}" checked onchange="updateBtn()"/>
+      <label for="f${i}" style="flex:1;cursor:pointer;">${f.name}</label>
+      <span class="book-status s-pending" id="status-${f.id}">pendente</span>
+    </div>`).join('');
+  document.getElementById('btn-indexar').disabled=false;
+  document.getElementById('btn-drive').textContent='✓ Drive conectado';
+}
+
+function updateBtn(){
+  const checked=document.querySelectorAll('#book-list input:checked').length;
+  document.getElementById('btn-indexar').disabled=checked===0;
+}
+
+function log(msg,type='info'){
+  const el=document.getElementById('log');
+  el.style.display='block';
+  el.innerHTML+=`<div class="${type}">${msg}</div>`;
+  el.scrollTop=el.scrollHeight;
+}
+
+// Split text into chunks of ~800 words
+function chunkText(text,bookName,fileId){
+  const words=text.split(/\s+/);
+  const size=800,overlap=80;
+  const chunks=[];
+  for(let i=0;i<words.length;i+=size-overlap){
+    const chunk=words.slice(i,i+size).join(' ');
+    if(chunk.trim().length>100)chunks.push({text:chunk,book:bookName,fileId,chunkIndex:chunks.length});
+  }
+  return chunks;
+}
+
+// Get embedding from Gemini
+async function getEmbedding(text,geminiKey){
+  const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key=${geminiKey}`,{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({model:'models/text-embedding-004',content:{parts:[{text:text.substring(0,8000)}]}})
+  });
+  const data=await res.json();
+  if(data.error)throw new Error(data.error.message);
+  return data.embedding.values;
+}
+
+// Upsert vectors to Pinecone
+async function upsertPinecone(vectors,pineconeHost,pineconeKey){
+  const res=await fetch(`${pineconeHost}/vectors/upsert`,{
+    method:'POST',headers:{'Content-Type':'application/json','Api-Key':pineconeKey},
+    body:JSON.stringify({vectors})
+  });
+  const data=await res.json();
+  if(data.error)throw new Error(JSON.stringify(data.error));
+  return data;
+}
+
+// Extract text from PDF via Gemini
+async function extractTextFromPDF(fileId,fileName,geminiKey){
+  const res=await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,{headers:{Authorization:`Bearer ${driveToken}`}});
+  const blob=await res.blob();
+  const base64=await new Promise((resolve,reject)=>{
+    const r=new FileReader();
+    r.onload=()=>resolve(r.result.split(',')[1]);
+    r.onerror=reject;
+    r.readAsDataURL(blob);
+  });
+  // Use Gemini to extract text
+  const extractRes=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`,{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({contents:[{role:'user',parts:[{inline_data:{mime_type:'application/pdf',data:base64}},{text:'Extract all text content from this PDF. Return only the raw text, no formatting, no commentary. Include all chapters, sections and paragraphs.'}]}]})
+  });
+  const extractData=await extractRes.json();
+  if(extractData.error)throw new Error(extractData.error.message);
+  return extractData.candidates?.[0]?.content?.parts?.[0]?.text||'';
+}
+
+async function iniciarIndexacao(){
+  const c=cfg();
+  if(!c.gemini||!c.pineconeKey||!c.pineconeHost){alert('Preencha todas as credenciais primeiro.');return;}
+  const selected=driveFiles.filter((_,i)=>document.getElementById(`f${i}`)?.checked);
+  if(!selected.length){alert('Selecione pelo menos um livro.');return;}
+
+  document.getElementById('btn-indexar').disabled=true;
+  document.getElementById('progress-wrap').style.display='block';
+  let total=selected.length,done=0;
+
+  for(const file of selected){
+    const statusEl=document.getElementById(`status-${file.id}`);
+    statusEl.className='book-status s-running';statusEl.textContent='indexando...';
+    log(`\n📖 Iniciando: ${file.name}`,'info');
+    try{
+      log(`  → Extraindo texto do PDF...`,'info');
+      const text=await extractTextFromPDF(file.id,file.name,c.gemini);
+      log(`  → Texto extraído: ${text.length} caracteres`,'info');
+
+      const chunks=chunkText(text,file.name,file.id);
+      log(`  → Dividido em ${chunks.length} trechos`,'info');
+
+      // Process in batches of 10
+      const batchSize=10;
+      for(let b=0;b<chunks.length;b+=batchSize){
+        const batch=chunks.slice(b,b+batchSize);
+        const vectors=[];
+        for(const chunk of batch){
+          const emb=await getEmbedding(chunk.text,c.gemini);
+          vectors.push({
+            id:`${file.id}_chunk_${chunk.chunkIndex}`,
+            values:emb,
+            metadata:{book:file.name,fileId:file.id,chunkIndex:chunk.chunkIndex,text:chunk.text.substring(0,1000)}
+          });
+        }
+        await upsertPinecone(vectors,c.pineconeHost,c.pineconeKey);
+        log(`  → Lote ${Math.floor(b/batchSize)+1}/${Math.ceil(chunks.length/batchSize)} salvo no Pinecone`,'ok');
+      }
+      statusEl.className='book-status s-ok';statusEl.textContent='✓ indexado';
+      log(`✓ ${file.name} indexado com sucesso!`,'ok');
+    }catch(e){
+      statusEl.className='book-status s-err';statusEl.textContent='erro';
+      log(`✗ Erro em ${file.name}: ${e.message}`,'err');
+    }
+    done++;
+    document.getElementById('progress-bar').style.width=`${(done/total)*100}%`;
+  }
+  log(`\n🎉 Indexação concluída! ${done}/${total} livros processados.`,'ok');
+  document.getElementById('btn-indexar').disabled=false;
+}
+</script>
+</body>
+</html>

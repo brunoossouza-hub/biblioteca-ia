@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Biblioteca IA</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+:root{--bg:#0f0f0f;--bg2:#181818;--bg3:#222;--border:#2a2a2a;--border2:#3a3a3a;--text:#e4e0d8;--text2:#8a877f;--text3:#4a4845;--accent:#c8a96e;--accent2:#a08852;--green:#5aad7a;--green-bg:#0e2018;--blue:#5a90d4;--blue-bg:#0a1828;--amber:#d4903a;--amber-bg:#1e1408;--red:#d46060;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Georgia',serif;background:var(--bg);color:var(--text);min-height:100vh;}
+.shell{display:flex;min-height:100vh;}
+.sidebar{width:220px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--border);padding:1.5rem 0;position:fixed;height:100vh;overflow-y:auto;}
+.main{margin-left:220px;flex:1;padding:2rem;max-width:1000px;}
+.logo{padding:0 1.25rem 1.25rem;border-bottom:1px solid var(--border);margin-bottom:1.25rem;}
+.logo h1{font-size:14px;font-weight:normal;color:var(--accent);}
+.logo p{font-size:11px;color:var(--text3);margin-top:3px;font-family:sans-serif;}
+.nav-sec{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;padding:0 1.25rem;margin-bottom:5px;margin-top:1rem;font-family:sans-serif;}
+.nav-item{display:flex;align-items:center;gap:8px;padding:7px 1.25rem;font-size:13px;color:var(--text2);cursor:pointer;border-left:2px solid transparent;font-family:sans-serif;transition:all .15s;}
+.nav-item:hover{color:var(--text);background:var(--bg3);}
+.nav-item.active{color:var(--accent);border-left-color:var(--accent);background:rgba(200,169,110,.06);}
+.nav-count{margin-left:auto;font-size:11px;background:var(--bg3);padding:2px 7px;border-radius:20px;color:var(--text3);}
+.nav-sep{border:none;border-top:1px solid var(--border);margin:.75rem 0;}
+.page{display:none;}.page.active{display:block;}
+.page-chat.active{display:flex;flex-direction:column;}
+
+/* Stats */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1.5rem;}
+.stat{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:.875rem 1rem;}
+.stat-num{font-size:24px;color:var(--text);}
+.stat-label{font-size:11px;color:var(--text3);margin-top:3px;text-transform:uppercase;letter-spacing:.05em;font-family:sans-serif;}
+
+/* Toolbar */
+.toolbar{display:flex;gap:8px;margin-bottom:1.25rem;flex-wrap:wrap;}
+.toolbar input,.toolbar select{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:8px 12px;color:var(--text);font-size:13px;font-family:sans-serif;outline:none;}
+.toolbar input{flex:1;min-width:180px;}
+.toolbar input::placeholder{color:var(--text3);}
+
+/* Grid */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:1.125rem;transition:border-color .2s;}
+.card:hover{border-color:var(--border2);}
+.card-title{font-size:14px;color:var(--text);line-height:1.4;margin-bottom:3px;}
+.card-author{font-size:12px;color:var(--text3);margin-bottom:8px;font-family:sans-serif;}
+.card-resumo{font-size:12px;color:var(--text2);line-height:1.5;margin-bottom:10px;font-family:sans-serif;}
+.card-footer{display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
+.badge{font-size:11px;padding:3px 8px;border-radius:20px;font-family:sans-serif;}
+.badge-nivel{background:transparent;color:var(--text3);border:1px solid var(--border);}
+.status-sel{font-size:11px;background:var(--bg);border:1px solid var(--border);border-radius:20px;padding:3px 8px;color:var(--text2);font-family:sans-serif;cursor:pointer;outline:none;margin-left:auto;}
+.empty{text-align:center;padding:3rem;color:var(--text3);font-size:14px;font-family:sans-serif;grid-column:1/-1;}
+
+/* Chat */
+.chat-wrap{display:flex;gap:1.25rem;height:calc(100vh - 120px);}
+.book-panel{width:200px;flex-shrink:0;overflow-y:auto;}
+.book-panel h3{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:8px;font-family:sans-serif;font-weight:normal;}
+.book-btn{width:100%;text-align:left;background:none;border:none;padding:7px 8px;border-radius:6px;font-size:12px;color:var(--text2);cursor:pointer;font-family:sans-serif;line-height:1.4;transition:all .15s;}
+.book-btn:hover{background:var(--bg3);color:var(--text);}
+.book-btn.active{background:rgba(200,169,110,.1);color:var(--accent);border-left:2px solid var(--accent);}
+.book-btn.all-books{color:var(--accent);font-weight:normal;border:1px solid rgba(200,169,110,.3);border-radius:6px;margin-bottom:8px;background:rgba(200,169,110,.06);}
+.book-btn.all-books.active{background:rgba(200,169,110,.15);}
+.chat-main{flex:1;display:flex;flex-direction:column;min-width:0;}
+.chat-ctx{font-size:12px;color:var(--text3);background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:7px 10px;margin-bottom:8px;font-family:sans-serif;display:none;}
+.chat-ctx.vis{display:block;}
+.messages{flex:1;overflow-y:auto;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:1.125rem;margin-bottom:10px;}
+.msg{margin-bottom:14px;}
+.msg-label{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:4px;font-family:sans-serif;}
+.bubble{display:inline-block;padding:9px 13px;border-radius:6px;font-size:14px;line-height:1.6;max-width:88%;font-family:sans-serif;}
+.msg-user .msg-label{text-align:right;}
+.msg-user .bubble{background:rgba(200,169,110,.12);color:var(--text);border:1px solid rgba(200,169,110,.2);float:right;}
+.msg-ai .bubble{background:var(--bg3);color:var(--text);border:1px solid var(--border);white-space:pre-wrap;}
+.clearfix{clear:both;}
+.sources{font-size:11px;color:var(--text3);margin-top:6px;font-family:sans-serif;padding:6px 10px;background:var(--bg2);border-radius:6px;border:1px solid var(--border);}
+.sources span{color:var(--accent);}
+.input-row{display:flex;gap:8px;}
+.input-row input{flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:10px 14px;color:var(--text);font-size:14px;font-family:sans-serif;outline:none;}
+.input-row input:focus{border-color:var(--accent2);}
+.input-row input::placeholder{color:var(--text3);}
+.btn{background:var(--accent);color:var(--bg);border:none;border-radius:6px;padding:10px 18px;font-size:13px;cursor:pointer;font-family:sans-serif;transition:background .15s;white-space:nowrap;}
+.btn:hover{background:var(--accent2);}
+.btn:disabled{background:var(--bg3);color:var(--text3);cursor:not-allowed;}
+.btn-sm{font-size:12px;padding:7px 12px;}
+.dot-loader{display:inline-flex;gap:4px;align-items:center;}
+.dot-loader span{width:5px;height:5px;border-radius:50%;background:var(--text3);animation:pulse 1.2s infinite;}
+.dot-loader span:nth-child(2){animation-delay:.2s;}
+.dot-loader span:nth-child(3){animation-delay:.4s;}
+@keyframes pulse{0%,60%,100%{opacity:.3;transform:scale(.8)}30%{opacity:1;transform:scale(1)}}
+
+/* Config */
+.config-page{max-width:600px;}
+.cfg-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:1.5rem;margin-bottom:1.25rem;}
+.cfg-card h3{font-size:14px;font-weight:normal;color:var(--text);margin-bottom:6px;}
+.cfg-card p{font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:10px;font-family:sans-serif;}
+.cfg-card a{color:var(--blue);}
+.fl{font-size:11px;color:var(--text3);margin-bottom:5px;font-family:sans-serif;text-transform:uppercase;letter-spacing:.05em;margin-top:8px;}
+.cfg-card input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:9px 12px;color:var(--text);font-size:13px;font-family:sans-serif;outline:none;margin-bottom:4px;}
+.cfg-card input::placeholder{color:var(--text3);}
+.saved-msg{font-size:12px;color:var(--green);margin-top:6px;display:none;font-family:sans-serif;}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:5px;}
+.dot-ok{background:var(--green);}.dot-no{background:var(--text3);}
+.rag-badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:20px;background:rgba(200,169,110,.1);color:var(--accent);border:1px solid rgba(200,169,110,.3);font-family:sans-serif;margin-left:8px;}
+
+@media(max-width:700px){.sidebar{display:none;}.main{margin-left:0;padding:1rem;}.stats{grid-template-columns:repeat(2,1fr);}.chat-wrap{flex-direction:column;height:auto;}.book-panel{width:100%;height:120px;overflow-x:auto;display:flex;flex-wrap:nowrap;gap:6px;}.book-btn{white-space:nowrap;width:auto;flex-shrink:0;}}
+</style>
+</head>
+<body>
+<div class="shell">
+<aside class="sidebar">
+  <div class="logo"><h1>Biblioteca IA</h1><p>Bruno Baptista Luz</p></div>
+  <div class="nav-sec">Navegação</div>
+  <div class="nav-item active" onclick="showPage('library',this)">
+    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+    Biblioteca <span class="nav-count" id="nav-total">19</span>
+  </div>
+  <div class="nav-item" onclick="showPage('chat',this)">
+    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+    Perguntar à IA <span class="rag-badge">RAG</span>
+  </div>
+  <div class="nav-item" onclick="showPage('config',this)">
+    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+    Configurações
+  </div>
+  <hr class="nav-sep">
+  <div class="nav-sec">Filtrar</div>
+  <div class="nav-item" onclick="filterBy('','');setActive(this)">Todos</div>
+  <div class="nav-item" onclick="filterBy('status','Na fila');setActive(this)">Na fila <span class="nav-count" id="cnt-fila">0</span></div>
+  <div class="nav-item" onclick="filterBy('status','Lendo');setActive(this)">Lendo <span class="nav-count" id="cnt-lendo">0</span></div>
+  <div class="nav-item" onclick="filterBy('status','Concluído');setActive(this)">Concluídos <span class="nav-count" id="cnt-done">0</span></div>
+</aside>
+
+<main class="main">
+
+<!-- LIBRARY -->
+<div class="page active" id="page-library">
+  <div class="stats" id="stats"></div>
+  <div class="toolbar">
+    <input type="text" id="search" placeholder="Buscar por título, autor ou tema..." oninput="renderGrid()"/>
+    <select onchange="activeF={k:'nivel',v:this.value};renderGrid()">
+      <option value="">Todos os níveis</option>
+      <option>Introdutório</option><option>Intermediário</option><option>Avançado</option>
+    </select>
+  </div>
+  <div class="grid" id="grid"></div>
+</div>
+
+<!-- CHAT RAG -->
+<div class="page page-chat" id="page-chat">
+  <div class="chat-wrap">
+    <div class="book-panel">
+      <h3>Escopo</h3>
+      <button class="book-btn all-books active" id="btn-all" onclick="setScope('all')">🔍 Todos os livros</button>
+      <h3 style="margin-top:8px;">Ou um livro específico</h3>
+      <div id="book-list"></div>
+    </div>
+    <div class="chat-main">
+      <div class="chat-ctx vis" id="chat-ctx">🔍 Buscando nos vetores indexados de todos os livros (RAG)</div>
+      <div class="messages" id="messages">
+        <div class="msg msg-ai">
+          <div class="msg-label">IA</div>
+          <div class="bubble">Olá! Pode perguntar qualquer coisa sobre os livros da biblioteca. Com o RAG ativo, vou buscar os trechos mais relevantes em todos os livros indexados e dar a melhor resposta possível.
+
+Se preferir focar num livro específico, selecione ao lado.</div>
+        </div>
+      </div>
+      <div class="input-row">
+        <input type="text" id="chat-input" placeholder="Faça sua pergunta — vou buscar em todos os livros..." onkeydown="if(event.key==='Enter')sendMsg()"/>
+        <button class="btn" id="send-btn" onclick="sendMsg()">Enviar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIG -->
+<div class="page" id="page-config">
+  <div class="config-page">
+    <div class="cfg-card">
+      <h3>🤖 Gemini API</h3>
+      <p>Usado tanto para gerar os embeddings na indexação quanto para responder às perguntas. Obtenha grátis em <a href="https://aistudio.google.com/app/apikey" target="_blank">aistudio.google.com</a>.</p>
+      <div class="fl">Chave Gemini</div>
+      <input type="password" id="inp-gemini" placeholder="AIzaSy..."/>
+    </div>
+    <div class="cfg-card">
+      <h3>🗄️ Pinecone — banco vetorial</h3>
+      <p>Onde os vetores dos livros ficam armazenados. Crie sua conta grátis em <a href="https://pinecone.io" target="_blank">pinecone.io</a> e crie um index chamado <strong>biblioteca-ia</strong> com dimensão <strong>768</strong>.</p>
+      <div class="fl">Pinecone API Key</div>
+      <input type="password" id="inp-pinecone-key" placeholder="pcsk_..."/>
+      <div class="fl">Pinecone Index Host</div>
+      <input type="text" id="inp-pinecone-host" placeholder="https://biblioteca-ia-xxxx.svc.aped-xxxx.pinecone.io"/>
+    </div>
+    <div class="cfg-card">
+      <h3>📁 Google Drive</h3>
+      <p>Necessário para o indexador buscar os PDFs. Não é usado nas consultas — a busca vai diretamente no Pinecone.</p>
+      <div class="fl">OAuth Client ID</div>
+      <input type="text" id="inp-clientid" placeholder="123...googleusercontent.com"/>
+      <div class="fl">ID da pasta no Drive</div>
+      <input type="text" id="inp-folderid" placeholder="1aBcDeFgHiJk..."/>
+    </div>
+    <div class="cfg-card">
+      <h3>📊 Status</h3>
+      <p id="status-cfg" style="font-family:sans-serif;font-size:13px;line-height:1.8;"></p>
+      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+        <button class="btn btn-sm" onclick="saveCfg()">Salvar configurações</button>
+        <a href="indexar.html" target="_blank"><button class="btn btn-sm" style="background:var(--bg3);color:var(--text2);border:1px solid var(--border);">Abrir indexador →</button></a>
+      </div>
+      <div class="saved-msg" id="saved-msg">✓ Salvo</div>
+    </div>
+  </div>
+</div>
+
+</main>
+</div>
+
+<script>
+const BOOKS=[
+  {id:1,title:"Machine Learning for Humans",author:"Vishal Maini, Samer Sabri",ano:2017,nivel:"Introdutório",tema:"Fundamentos de ML",status:"Na fila",resumo:"Guia acessível cobrindo todo o espectro de ML com linguagem simples."},
+  {id:2,title:"Machine Learning for Absolute Beginners",author:"Oliver Theobald",ano:2017,nivel:"Introdutório",tema:"Introdução a ML",status:"Na fila",resumo:"Introdução sem pré-requisitos matemáticos ou de programação."},
+  {id:3,title:"Mathematics for Machine Learning",author:"Deisenroth, Faisal, Ong",ano:2020,nivel:"Intermediário",tema:"Matemática / Álgebra linear",status:"Na fila",resumo:"Álgebra linear, cálculo diferencial, probabilidade e otimização para ML."},
+  {id:4,title:"Machine Learning: A Probabilistic Perspective",author:"Kevin P. Murphy",ano:2012,nivel:"Avançado",tema:"Fundamentos / Probabilidade",status:"Na fila",resumo:"Tratamento rigoroso de ML sob perspectiva probabilística."},
+  {id:5,title:"Probabilistic Machine Learning: Advanced Topics",author:"Kevin P. Murphy",ano:2023,nivel:"Avançado",tema:"ML probabilístico avançado",status:"Na fila",resumo:"Modelos de difusão, LLMs, RL profundo e inferência variacional."},
+  {id:6,title:"Pattern Recognition and Machine Learning",author:"Christopher M. Bishop",ano:2006,nivel:"Avançado",tema:"Reconhecimento de padrões",status:"Na fila",resumo:"Clássico com abordagem bayesiana. SVMs, modelos gráficos e métodos de kernel."},
+  {id:7,title:"Hands-On ML com Scikit-Learn, Keras & TensorFlow",author:"Aurélien Géron",ano:2019,nivel:"Intermediário",tema:"ML aplicado / TensorFlow",status:"Na fila",resumo:"Manual prático com Scikit-Learn, Keras e TensorFlow."},
+  {id:8,title:"Hands-On ML com Scikit-Learn & PyTorch",author:"Aurélien Géron",ano:2024,nivel:"Intermediário",tema:"ML aplicado / PyTorch",status:"Na fila",resumo:"Versão atualizada substituindo TensorFlow por PyTorch."},
+  {id:9,title:"Applied Machine Learning and AI for Engineers",author:"Jeff Prosise",ano:2022,nivel:"Intermediário",tema:"ML aplicado / Cloud",status:"Na fila",resumo:"Abordagem orientada a engenheiros com Python e serviços de cloud."},
+  {id:10,title:"Deep Learning",author:"Goodfellow, Bengio, Courville",ano:2016,nivel:"Avançado",tema:"Deep Learning / Teoria",status:"Na fila",resumo:"A Bíblia do Deep Learning. CNNs, RNNs, otimização e modelos generativos."},
+  {id:11,title:"GANs in Action",author:"Jakub Langr, Vladimir Bok",ano:2019,nivel:"Intermediário",tema:"GANs / IA generativa",status:"Na fila",resumo:"Introdução prática a GANs com implementações em Keras."},
+  {id:12,title:"Natural Language Processing with Transformers",author:"Tunstall, von Werra, Wolf",ano:2022,nivel:"Intermediário",tema:"NLP / Transformers / Hugging Face",status:"Na fila",resumo:"Guia prático de NLP com a biblioteca Hugging Face."},
+  {id:13,title:"Hands-On Large Language Models",author:"Jay Alammar, Maarten Grootendorst",ano:2024,nivel:"Intermediário",tema:"LLMs / RAG / Fine-tuning",status:"Lendo",resumo:"Como LLMs funcionam: embeddings, RAG, fine-tuning e agentes."},
+  {id:14,title:"Hands-On Generative AI with Transformers and Diffusion Models",author:"Sanseviero, Cuenca et al.",ano:2024,nivel:"Intermediário",tema:"IA generativa / Diffusion",status:"Na fila",resumo:"Transformers e modelos de difusão num único framework."},
+  {id:15,title:"LLM Engineer's Handbook",author:"Paul Iusztin, Maxime Labonne",ano:2024,nivel:"Intermediário",tema:"LLMs / RAG / Deploy",status:"Na fila",resumo:"Engenharia para construir e operar sistemas baseados em LLMs."},
+  {id:16,title:"Building ML Powered Applications",author:"Emmanuel Ameisen",ano:2020,nivel:"Intermediário",tema:"Produto de ML",status:"Na fila",resumo:"Da ideia ao produto: como transformar modelos de ML em produtos reais."},
+  {id:17,title:"Designing Machine Learning Systems",author:"Chip Huyen",ano:2022,nivel:"Intermediário",tema:"Design de sistemas de ML",status:"Na fila",resumo:"Projetar, construir e operar sistemas de ML em produção."},
+  {id:18,title:"Practical MLOps",author:"Noah Gift, Alfredo Deza",ano:2021,nivel:"Intermediário",tema:"MLOps / Deploy",status:"Na fila",resumo:"CI/CD para modelos de ML, monitoramento e deploy em cloud."},
+  {id:19,title:"AI Engineering",author:"Chip Huyen",ano:2025,nivel:"Intermediário",tema:"Engenharia de IA / LLMs",status:"Na fila",resumo:"Foundation models em produção: RAG, agentes, fine-tuning e governança."},
+];
+
+let activeF={k:'',v:''};
+let currentScope='all';
+let currentBookId=null;
+
+try{const s=JSON.parse(localStorage.getItem('lib_st')||'{}');BOOKS.forEach(b=>{if(s[b.id])b.status=s[b.id];});}catch(e){}
+
+function cfg(){try{return JSON.parse(localStorage.getItem('lib_cfg2')||'{}');}catch(e){return{};}}
+function saveCfg(){
+  const c={gemini:document.getElementById('inp-gemini').value.trim(),pineconeKey:document.getElementById('inp-pinecone-key').value.trim(),pineconeHost:document.getElementById('inp-pinecone-host').value.trim(),clientId:document.getElementById('inp-clientid').value.trim(),folderId:document.getElementById('inp-folderid').value.trim()};
+  localStorage.setItem('lib_cfg2',JSON.stringify(c));
+  const el=document.getElementById('saved-msg');el.style.display='block';setTimeout(()=>el.style.display='none',2000);
+  updateStatusCfg();
+}
+function updateStatusCfg(){
+  const c=cfg();
+  document.getElementById('status-cfg').innerHTML=[
+    `<span class="dot ${c.gemini?'dot-ok':'dot-no'}"></span>Gemini: ${c.gemini?'configurado':'não configurado'}`,
+    `<span class="dot ${c.pineconeKey?'dot-ok':'dot-no'}"></span>Pinecone Key: ${c.pineconeKey?'configurado':'não configurado'}`,
+    `<span class="dot ${c.pineconeHost?'dot-ok':'dot-no'}"></span>Pinecone Host: ${c.pineconeHost?'configurado':'não configurado'}`,
+    `<span class="dot ${c.clientId?'dot-ok':'dot-no'}"></span>OAuth Client ID: ${c.clientId?'configurado':'não configurado'}`,
+    `<span class="dot ${c.folderId?'dot-ok':'dot-no'}"></span>ID pasta Drive: ${c.folderId?'configurado':'não configurado'}`,
+  ].join('<br>');
+}
+function saveStatus(id,v){try{const s=JSON.parse(localStorage.getItem('lib_st')||'{}');s[id]=v;localStorage.setItem('lib_st',JSON.stringify(s));}catch(e){}}
+
+// RAG: get query embedding
+async function getQueryEmbedding(text,geminiKey){
+  const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key=${geminiKey}`,{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({model:'models/text-embedding-004',content:{parts:[{text}]}})
+  });
+  const data=await res.json();
+  if(data.error)throw new Error(data.error.message);
+  return data.embedding.values;
+}
+
+// RAG: query Pinecone
+async function queryPinecone(embedding,pineconeHost,pineconeKey,filter,topK=8){
+  const body={vector:embedding,topK,includeMetadata:true};
+  if(filter)body.filter=filter;
+  const res=await fetch(`${pineconeHost}/query`,{
+    method:'POST',headers:{'Content-Type':'application/json','Api-Key':pineconeKey},
+    body:JSON.stringify(body)
+  });
+  const data=await res.json();
+  if(data.error)throw new Error(JSON.stringify(data.error));
+  return data.matches||[];
+}
+
+// RAG: ask Gemini with retrieved context
+async function askWithContext(question,matches,geminiKey){
+  const context=matches.map((m,i)=>`[Trecho ${i+1} — ${m.metadata.book}]\n${m.metadata.text}`).join('\n\n---\n\n');
+  const sources=[...new Set(matches.map(m=>m.metadata.book))];
+  const prompt=`Você é um especialista em Machine Learning e IA. Responda a pergunta do usuário com base nos trechos abaixo, extraídos de livros técnicos.
+
+TRECHOS RELEVANTES:
+${context}
+
+PERGUNTA: ${question}
+
+Responda em português de forma clara e precisa. Cite os livros quando relevante. Se os trechos não forem suficientes para responder completamente, diga isso e complete com seu conhecimento geral.`;
+
+  const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`,{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({contents:[{role:'user',parts:[{text:prompt}]}]})
+  });
+  const data=await res.json();
+  if(data.error)throw new Error(data.error.message);
+  return{reply:data.candidates?.[0]?.content?.parts?.[0]?.text||'Sem resposta.',sources};
+}
+
+async function sendMsg(){
+  const input=document.getElementById('chat-input');
+  const q=input.value.trim();
+  if(!q)return;
+  const c=cfg();
+  if(!c.gemini||!c.pineconeKey||!c.pineconeHost){
+    alert('Configure Gemini e Pinecone em Configurações primeiro.');return;
+  }
+  input.value='';
+  const msgs=document.getElementById('messages');
+  msgs.innerHTML+=`<div class="msg msg-user"><div class="msg-label">Você</div><div class="bubble">${q}</div><div class="clearfix"></div></div>`;
+  msgs.innerHTML+=`<div class="msg msg-ai" id="loading-msg"><div class="msg-label">IA</div><div class="bubble"><div class="dot-loader"><span></span><span></span><span></span></div></div></div>`;
+  msgs.scrollTop=msgs.scrollHeight;
+  document.getElementById('send-btn').disabled=true;
+
+  const ctx=document.getElementById('chat-ctx');
+
+  try{
+    ctx.textContent='Gerando embedding da pergunta...';ctx.classList.add('vis');
+    const embedding=await getQueryEmbedding(q,c.gemini);
+
+    ctx.textContent='Buscando trechos relevantes no Pinecone...';
+    let filter=null;
+    if(currentScope==='book'&&currentBookId){
+      const book=BOOKS.find(b=>b.id===currentBookId);
+      if(book)filter={book:{$eq:book.title}};
+    }
+    const matches=await queryPinecone(embedding,c.pineconeHost,c.pineconeKey,filter);
+
+    if(!matches.length){
+      document.getElementById('loading-msg').outerHTML=`<div class="msg msg-ai"><div class="msg-label">IA</div><div class="bubble">Nenhum trecho relevante encontrado no Pinecone. Verifique se os livros foram indexados no indexador.</div></div>`;
+      ctx.textContent='Nenhum resultado encontrado.';
+      document.getElementById('send-btn').disabled=false;
+      return;
+    }
+
+    ctx.textContent=`Encontrados ${matches.length} trechos relevantes — gerando resposta...`;
+    const{reply,sources}=await askWithContext(q,matches,c.gemini);
+
+    document.getElementById('loading-msg').outerHTML=`
+      <div class="msg msg-ai">
+        <div class="msg-label">IA</div>
+        <div class="bubble">${reply}</div>
+        <div class="sources">📚 Fontes consultadas: <span>${sources.join(', ')}</span></div>
+      </div>`;
+    ctx.textContent=`✓ Resposta gerada com base em ${matches.length} trechos de ${sources.length} livro(s)`;
+  }catch(e){
+    document.getElementById('loading-msg').outerHTML=`<div class="msg msg-ai"><div class="msg-label">IA</div><div class="bubble" style="color:var(--red)">Erro: ${e.message}</div></div>`;
+    ctx.textContent='Erro na busca.';
+  }
+  msgs.scrollTop=msgs.scrollHeight;
+  document.getElementById('send-btn').disabled=false;
+}
+
+function setScope(scope,bookId){
+  currentScope=scope;currentBookId=bookId||null;
+  const ctx=document.getElementById('chat-ctx');
+  document.getElementById('btn-all').classList.toggle('active',scope==='all');
+  document.querySelectorAll('#book-list .book-btn').forEach(b=>b.classList.remove('active'));
+  if(scope==='all'){
+    ctx.textContent='🔍 Buscando nos vetores indexados de todos os livros (RAG)';
+    document.getElementById('chat-input').placeholder='Faça sua pergunta — vou buscar em todos os livros...';
+  }else{
+    const book=BOOKS.find(b=>b.id===bookId);
+    ctx.textContent=`📖 Buscando só em: ${book.title}`;
+    document.getElementById('chat-input').placeholder=`Pergunte sobre ${book.title}...`;
+  }
+}
+
+function renderStats(){
+  const fila=BOOKS.filter(b=>b.status==='Na fila').length;
+  const lendo=BOOKS.filter(b=>b.status==='Lendo').length;
+  const done=BOOKS.filter(b=>b.status==='Concluído').length;
+  document.getElementById('stats').innerHTML=`
+    <div class="stat"><div class="stat-num">${BOOKS.length}</div><div class="stat-label">Total</div></div>
+    <div class="stat"><div class="stat-num">${fila}</div><div class="stat-label">Na fila</div></div>
+    <div class="stat"><div class="stat-num">${lendo}</div><div class="stat-label">Lendo</div></div>
+    <div class="stat"><div class="stat-num">${done}</div><div class="stat-label">Concluídos</div></div>`;
+  document.getElementById('cnt-fila').textContent=fila;
+  document.getElementById('cnt-lendo').textContent=lendo;
+  document.getElementById('cnt-done').textContent=done;
+}
+
+function renderGrid(){
+  const q=document.getElementById('search').value.toLowerCase();
+  const filtered=BOOKS.filter(b=>{
+    const mq=!q||b.title.toLowerCase().includes(q)||b.author.toLowerCase().includes(q)||b.tema.toLowerCase().includes(q);
+    const mf=!activeF.v||b[activeF.k]===activeF.v;
+    return mq&&mf;
+  });
+  document.getElementById('nav-total').textContent=filtered.length;
+  if(!filtered.length){document.getElementById('grid').innerHTML='<div class="empty">Nenhum livro encontrado.</div>';return;}
+  document.getElementById('grid').innerHTML=filtered.map(b=>`
+    <div class="card">
+      <div class="card-title">${b.title}</div>
+      <div class="card-author">${b.author} · ${b.ano}</div>
+      <div class="card-resumo">${b.resumo}</div>
+      <div class="card-footer">
+        <span class="badge badge-nivel">${b.nivel}</span>
+        <select class="status-sel" onchange="changeStatus(${b.id},this.value)">
+          <option ${b.status==='Na fila'?'selected':''}>Na fila</option>
+          <option ${b.status==='Lendo'?'selected':''}>Lendo</option>
+          <option ${b.status==='Concluído'?'selected':''}>Concluído</option>
+        </select>
+      </div>
+    </div>`).join('');
+}
+
+function changeStatus(id,v){BOOKS.find(b=>b.id===id).status=v;saveStatus(id,v);renderStats();}
+function filterBy(k,v){activeF={k,v};renderGrid();}
+function setActive(el){document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('active'));el.classList.add('active');}
+
+function showPage(p,el){
+  document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+  document.getElementById('page-'+p).classList.add('active');
+  if(el)setActive(el);
+  if(p==='chat'){
+    document.getElementById('book-list').innerHTML=BOOKS.map(b=>`
+      <button class="book-btn" onclick="setScope('book',${b.id});this.classList.add('active');document.getElementById('btn-all').classList.remove('active')">${b.title}</button>`).join('');
+  }
+  if(p==='config'){
+    const c=cfg();
+    if(c.gemini)document.getElementById('inp-gemini').value=c.gemini;
+    if(c.pineconeKey)document.getElementById('inp-pinecone-key').value=c.pineconeKey;
+    if(c.pineconeHost)document.getElementById('inp-pinecone-host').value=c.pineconeHost;
+    if(c.clientId)document.getElementById('inp-clientid').value=c.clientId;
+    if(c.folderId)document.getElementById('inp-folderid').value=c.folderId;
+    updateStatusCfg();
+  }
+}
+
+renderStats();renderGrid();
+</script>
+</body>
+</html>
