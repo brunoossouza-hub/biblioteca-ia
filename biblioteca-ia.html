@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Biblioteca IA — Bruno Baptista Luz</title>
+<style>
+  :root {
+    --bg: #0f0f0f;
+    --bg2: #1a1a1a;
+    --bg3: #242424;
+    --border: #2e2e2e;
+    --border2: #3a3a3a;
+    --text: #e8e6e0;
+    --text2: #9a9690;
+    --text3: #5e5c58;
+    --accent: #c8a96e;
+    --accent2: #a08852;
+    --green: #4a9e6a;
+    --green-bg: #1a2e22;
+    --amber: #c8893a;
+    --amber-bg: #2a1e0e;
+    --blue: #4a7fc8;
+    --blue-bg: #0e1a2e;
+    --radius: 10px;
+    --radius-sm: 6px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Georgia', serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+  a { color: var(--accent); }
+
+  /* Layout */
+  .shell { display: flex; min-height: 100vh; }
+  .sidebar { width: 240px; flex-shrink: 0; background: var(--bg2); border-right: 1px solid var(--border); padding: 2rem 0; display: flex; flex-direction: column; position: fixed; height: 100vh; overflow-y: auto; }
+  .main { margin-left: 240px; flex: 1; padding: 2.5rem 2rem; max-width: 1100px; }
+
+  /* Sidebar */
+  .logo { padding: 0 1.5rem 2rem; border-bottom: 1px solid var(--border); margin-bottom: 1.5rem; }
+  .logo h1 { font-size: 15px; font-weight: normal; color: var(--accent); letter-spacing: 0.04em; }
+  .logo p { font-size: 11px; color: var(--text3); margin-top: 4px; letter-spacing: 0.02em; }
+  .nav-label { font-size: 10px; color: var(--text3); letter-spacing: 0.08em; text-transform: uppercase; padding: 0 1.5rem; margin-bottom: 6px; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 8px 1.5rem; font-size: 13px; color: var(--text2); cursor: pointer; transition: all 0.15s; border-left: 2px solid transparent; }
+  .nav-item:hover { color: var(--text); background: var(--bg3); }
+  .nav-item.active { color: var(--accent); border-left-color: var(--accent); background: rgba(200,169,110,0.06); }
+  .nav-sep { border: none; border-top: 1px solid var(--border); margin: 1rem 0; }
+  .nav-count { margin-left: auto; font-size: 11px; background: var(--bg3); padding: 2px 7px; border-radius: 20px; color: var(--text3); }
+
+  /* Stats */
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 2rem; }
+  .stat { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem 1.25rem; }
+  .stat-num { font-size: 26px; color: var(--text); font-weight: normal; }
+  .stat-label { font-size: 11px; color: var(--text3); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.06em; }
+
+  /* Toolbar */
+  .toolbar { display: flex; gap: 10px; margin-bottom: 1.5rem; align-items: center; }
+  .toolbar input { flex: 1; background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 9px 14px; color: var(--text); font-size: 14px; font-family: inherit; outline: none; transition: border-color 0.15s; }
+  .toolbar input:focus { border-color: var(--border2); }
+  .toolbar input::placeholder { color: var(--text3); }
+  .toolbar select { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 9px 12px; color: var(--text2); font-size: 13px; font-family: inherit; outline: none; cursor: pointer; }
+
+  /* Book grid */
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
+  .card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; transition: border-color 0.2s, background 0.2s; }
+  .card:hover { border-color: var(--border2); background: var(--bg3); }
+  .card-title { font-size: 14px; color: var(--text); line-height: 1.4; margin-bottom: 3px; }
+  .card-author { font-size: 12px; color: var(--text3); margin-bottom: 10px; font-family: sans-serif; }
+  .card-resumo { font-size: 12px; color: var(--text2); line-height: 1.5; margin-bottom: 12px; font-family: sans-serif; }
+  .card-footer { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .badge { font-size: 11px; padding: 3px 9px; border-radius: 20px; font-family: sans-serif; font-weight: normal; }
+  .badge-fila { background: var(--bg3); color: var(--text3); border: 1px solid var(--border2); }
+  .badge-lendo { background: var(--amber-bg); color: var(--amber); border: 1px solid rgba(200,137,58,0.3); }
+  .badge-done { background: var(--green-bg); color: var(--green); border: 1px solid rgba(74,158,106,0.3); }
+  .badge-nivel { background: transparent; color: var(--text3); border: 1px solid var(--border); }
+  .status-select { font-size: 11px; background: var(--bg); border: 1px solid var(--border); border-radius: 20px; padding: 3px 8px; color: var(--text2); font-family: sans-serif; cursor: pointer; outline: none; margin-left: auto; }
+
+  /* Chat */
+  .chat-wrap { display: flex; gap: 1.5rem; height: calc(100vh - 140px); }
+  .book-list-panel { width: 220px; flex-shrink: 0; overflow-y: auto; }
+  .book-list-panel h3 { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text3); margin-bottom: 10px; font-family: sans-serif; font-weight: normal; }
+  .book-btn { width: 100%; text-align: left; background: none; border: none; padding: 7px 10px; border-radius: var(--radius-sm); font-size: 12px; color: var(--text2); cursor: pointer; font-family: sans-serif; line-height: 1.4; transition: all 0.15s; }
+  .book-btn:hover { background: var(--bg3); color: var(--text); }
+  .book-btn.active { background: rgba(200,169,110,0.1); color: var(--accent); border-left: 2px solid var(--accent); }
+  .chat-panel { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .chat-context { font-size: 12px; color: var(--text3); background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 12px; margin-bottom: 10px; font-family: sans-serif; display: none; }
+  .chat-context.visible { display: block; }
+  .messages { flex: 1; overflow-y: auto; background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; margin-bottom: 12px; }
+  .msg { margin-bottom: 16px; }
+  .msg-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text3); margin-bottom: 5px; font-family: sans-serif; }
+  .msg-bubble { font-size: 14px; line-height: 1.6; max-width: 85%; padding: 10px 14px; border-radius: var(--radius-sm); }
+  .msg-user .msg-label { text-align: right; }
+  .msg-user .msg-bubble { background: rgba(200,169,110,0.12); color: var(--text); border: 1px solid rgba(200,169,110,0.2); margin-left: auto; font-family: sans-serif; }
+  .msg-ai .msg-bubble { background: var(--bg3); color: var(--text); border: 1px solid var(--border); font-family: sans-serif; white-space: pre-wrap; }
+  .input-row { display: flex; gap: 8px; }
+  .input-row input { flex: 1; background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 14px; color: var(--text); font-size: 14px; font-family: sans-serif; outline: none; transition: border-color 0.15s; }
+  .input-row input:focus { border-color: var(--accent2); }
+  .input-row input::placeholder { color: var(--text3); }
+  .btn { background: var(--accent); color: var(--bg); border: none; border-radius: var(--radius-sm); padding: 10px 18px; font-size: 13px; cursor: pointer; font-family: sans-serif; transition: background 0.15s; white-space: nowrap; }
+  .btn:hover { background: var(--accent2); }
+  .btn:disabled { background: var(--bg3); color: var(--text3); cursor: not-allowed; }
+
+  /* Drive config */
+  .drive-box { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; margin-bottom: 1.5rem; }
+  .drive-box h3 { font-size: 14px; color: var(--text); margin-bottom: 8px; font-weight: normal; }
+  .drive-box p { font-size: 13px; color: var(--text2); line-height: 1.6; margin-bottom: 1rem; font-family: sans-serif; }
+  .drive-row { display: flex; gap: 8px; }
+  .drive-row input { flex: 1; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 9px 14px; color: var(--text); font-size: 13px; font-family: sans-serif; outline: none; }
+  .api-box { background: var(--blue-bg); border: 1px solid rgba(74,127,200,0.3); border-radius: var(--radius); padding: 1.5rem; margin-bottom: 1.5rem; }
+  .api-box h3 { font-size: 14px; color: var(--blue); margin-bottom: 8px; font-weight: normal; }
+  .api-box p { font-size: 13px; color: var(--text2); line-height: 1.6; margin-bottom: 1rem; font-family: sans-serif; }
+  .api-box a { color: var(--blue); }
+  .steps { list-style: none; display: flex; flex-direction: column; gap: 8px; margin-bottom: 1rem; }
+  .steps li { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; color: var(--text2); font-family: sans-serif; }
+  .step-n { width: 20px; height: 20px; border-radius: 50%; background: var(--bg3); border: 1px solid var(--border2); display: flex; align-items: center; justify-content: center; font-size: 11px; flex-shrink: 0; color: var(--text3); margin-top: 1px; }
+  .saved-msg { font-size: 12px; color: var(--green); margin-top: 8px; display: none; font-family: sans-serif; }
+  .dot-loader { display: inline-flex; gap: 4px; align-items: center; }
+  .dot-loader span { width: 5px; height: 5px; border-radius: 50%; background: var(--text3); animation: pulse 1.2s infinite; }
+  .dot-loader span:nth-child(2) { animation-delay: 0.2s; }
+  .dot-loader span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes pulse { 0%,60%,100%{opacity:0.3;transform:scale(0.8)} 30%{opacity:1;transform:scale(1)} }
+  .empty { text-align: center; padding: 3rem; color: var(--text3); font-size: 14px; font-family: sans-serif; grid-column: 1/-1; }
+  .page { display: none; }
+  .page.active { display: block; }
+  .page-chat.active { display: flex; flex-direction: column; }
+
+  @media (max-width: 768px) {
+    .sidebar { display: none; }
+    .main { margin-left: 0; padding: 1rem; }
+    .stats { grid-template-columns: repeat(2,1fr); }
+    .chat-wrap { flex-direction: column; height: auto; }
+    .book-list-panel { width: 100%; height: 120px; overflow-x: auto; display: flex; gap: 6px; align-items: flex-start; flex-wrap: nowrap; }
+    .book-btn { white-space: nowrap; width: auto; flex-shrink: 0; }
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="logo">
+      <h1>Biblioteca IA</h1>
+      <p>Bruno Baptista Luz</p>
+    </div>
+    <div class="nav-label">Navegação</div>
+    <div class="nav-item active" onclick="showPage('library')">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+      Biblioteca
+      <span class="nav-count" id="nav-count">19</span>
+    </div>
+    <div class="nav-item" onclick="showPage('chat')">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      Perguntar à IA
+    </div>
+    <hr class="nav-sep">
+    <div class="nav-label">Status</div>
+    <div class="nav-item" onclick="setFilter('','')">Todos</div>
+    <div class="nav-item" onclick="setFilter('status','Na fila')">Na fila <span class="nav-count" id="cnt-fila">0</span></div>
+    <div class="nav-item" onclick="setFilter('status','Lendo')">Lendo <span class="nav-count" id="cnt-lendo">0</span></div>
+    <div class="nav-item" onclick="setFilter('status','Concluído')">Concluídos <span class="nav-count" id="cnt-done">0</span></div>
+    <hr class="nav-sep">
+    <div class="nav-label">Nível</div>
+    <div class="nav-item" onclick="setFilter('nivel','Introdutório')">Introdutório</div>
+    <div class="nav-item" onclick="setFilter('nivel','Intermediário')">Intermediário</div>
+    <div class="nav-item" onclick="setFilter('nivel','Avançado')">Avançado</div>
+  </aside>
+
+  <main class="main">
+    <!-- LIBRARY PAGE -->
+    <div class="page active" id="page-library">
+      <div class="stats" id="stats"></div>
+      <div class="toolbar">
+        <input type="text" id="search" placeholder="Buscar por título, autor ou tema..." oninput="renderGrid()" />
+        <select onchange="activeFilter={k:'nivel',v:this.value};renderGrid()">
+          <option value="">Todos os níveis</option>
+          <option>Introdutório</option>
+          <option>Intermediário</option>
+          <option>Avançado</option>
+        </select>
+      </div>
+      <div class="grid" id="grid"></div>
+    </div>
+
+    <!-- CHAT PAGE -->
+    <div class="page page-chat" id="page-chat">
+      <div class="api-box">
+        <h3>🔑 Chave da API Anthropic</h3>
+        <p>Para a IA funcionar, você precisa de uma chave da API Anthropic. <a href="https://console.anthropic.com/settings/keys" target="_blank">Gere sua chave aqui</a> e cole abaixo. Ela fica salva só no seu browser.</p>
+        <div class="drive-row">
+          <input type="password" id="api-key-input" placeholder="sk-ant-..." />
+          <button class="btn" onclick="saveApiKey()">Salvar</button>
+        </div>
+        <div class="saved-msg" id="api-saved">✓ Chave salva</div>
+      </div>
+
+      <div class="drive-box">
+        <h3>📁 Pasta no Google Drive</h3>
+        <p>Coloque os PDFs dos livros numa pasta do Drive e informe o nome abaixo. Quando você fizer uma pergunta, a IA vai buscar o arquivo automaticamente.</p>
+        <ol class="steps">
+          <li><span class="step-n">1</span><span>Crie uma pasta chamada <strong>Biblioteca IA</strong> no Google Drive</span></li>
+          <li><span class="step-n">2</span><span>Suba os PDFs com nomes reconhecíveis (ex: <code>deep-learning-goodfellow.pdf</code>)</span></li>
+          <li><span class="step-n">3</span><span>Confirme o nome da pasta abaixo</span></li>
+        </ol>
+        <div class="drive-row">
+          <input type="text" id="folder-input" placeholder="Nome da pasta" value="Biblioteca IA" />
+          <button class="btn" onclick="saveFolder()">Salvar</button>
+        </div>
+        <div class="saved-msg" id="folder-saved">✓ Pasta configurada</div>
+      </div>
+
+      <div class="chat-wrap">
+        <div class="book-list-panel">
+          <h3>Livro</h3>
+          <div id="book-list-chat"></div>
+        </div>
+        <div class="chat-panel">
+          <div class="chat-context" id="chat-context"></div>
+          <div class="messages" id="messages">
+            <div class="msg msg-ai">
+              <div class="msg-label">IA</div>
+              <div class="msg-bubble">Selecione um livro ao lado e faça sua pergunta. Responderei com base no conteúdo real do livro.</div>
+            </div>
+          </div>
+          <div class="input-row">
+            <input type="text" id="chat-input" placeholder="Faça uma pergunta sobre o livro..." onkeydown="if(event.key==='Enter')sendMsg()" />
+            <button class="btn" id="send-btn" onclick="sendMsg()">Enviar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+const BOOKS = [
+  {id:1,title:"Machine Learning for Humans",author:"Vishal Maini, Samer Sabri",ano:2017,nivel:"Introdutório",tema:"Fundamentos de ML",status:"Na fila",resumo:"Guia acessível cobrindo todo o espectro de ML com linguagem simples, exemplos e código."},
+  {id:2,title:"Machine Learning for Absolute Beginners",author:"Oliver Theobald",ano:2017,nivel:"Introdutório",tema:"Introdução a ML",status:"Na fila",resumo:"Introdução sem pré-requisitos matemáticos. Foco em conceitos e vocabulário fundamental."},
+  {id:3,title:"Mathematics for Machine Learning",author:"Deisenroth, Faisal, Ong",ano:2020,nivel:"Intermediário",tema:"Matemática / Álgebra linear",status:"Na fila",resumo:"Álgebra linear, cálculo diferencial, probabilidade e otimização para ML."},
+  {id:4,title:"Machine Learning: A Probabilistic Perspective",author:"Kevin P. Murphy",ano:2012,nivel:"Avançado",tema:"Fundamentos / Probabilidade",status:"Na fila",resumo:"Tratamento rigoroso e abrangente de ML sob perspectiva probabilística."},
+  {id:5,title:"Probabilistic Machine Learning: Advanced Topics",author:"Kevin P. Murphy",ano:2023,nivel:"Avançado",tema:"ML probabilístico avançado",status:"Na fila",resumo:"Modelos de difusão, LLMs, RL profundo e inferência variacional."},
+  {id:6,title:"Pattern Recognition and Machine Learning",author:"Christopher M. Bishop",ano:2006,nivel:"Avançado",tema:"Reconhecimento de padrões",status:"Na fila",resumo:"Clássico com abordagem bayesiana. SVMs, modelos gráficos e métodos de kernel."},
+  {id:7,title:"Hands-On ML with Scikit-Learn, Keras & TensorFlow",author:"Aurélien Géron",ano:2019,nivel:"Intermediário",tema:"ML aplicado / TensorFlow",status:"Na fila",resumo:"Manual prático com foco em implementação usando Scikit-Learn, Keras e TensorFlow."},
+  {id:8,title:"Hands-On ML with Scikit-Learn & PyTorch",author:"Aurélien Géron",ano:2024,nivel:"Intermediário",tema:"ML aplicado / PyTorch",status:"Na fila",resumo:"Versão atualizada substituindo TensorFlow por PyTorch. Alinhado ao ecossistema atual."},
+  {id:9,title:"Applied Machine Learning and AI for Engineers",author:"Jeff Prosise",ano:2022,nivel:"Intermediário",tema:"ML aplicado / Cloud",status:"Na fila",resumo:"Abordagem orientada a engenheiros com Python e serviços de cloud."},
+  {id:10,title:"Deep Learning",author:"Goodfellow, Bengio, Courville",ano:2016,nivel:"Avançado",tema:"Deep Learning / Teoria",status:"Na fila",resumo:"A Bíblia do Deep Learning. CNNs, RNNs, otimização e modelos generativos."},
+  {id:11,title:"GANs in Action",author:"Jakub Langr, Vladimir Bok",ano:2019,nivel:"Intermediário",tema:"GANs / IA generativa",status:"Na fila",resumo:"Introdução prática a GANs com implementações em Keras."},
+  {id:12,title:"Natural Language Processing with Transformers",author:"Tunstall, von Werra, Wolf",ano:2022,nivel:"Intermediário",tema:"NLP / Transformers / Hugging Face",status:"Na fila",resumo:"Guia prático de NLP com a biblioteca Hugging Face Transformers."},
+  {id:13,title:"Hands-On Large Language Models",author:"Jay Alammar, Maarten Grootendorst",ano:2024,nivel:"Intermediário",tema:"LLMs / RAG / Fine-tuning",status:"Lendo",resumo:"Como LLMs funcionam: embeddings, busca semântica, RAG, fine-tuning e agentes."},
+  {id:14,title:"Hands-On Generative AI with Transformers and Diffusion Models",author:"Sanseviero, Cuenca et al.",ano:2024,nivel:"Intermediário",tema:"IA generativa / Diffusion",status:"Na fila",resumo:"Transformers e modelos de difusão num único framework com Hugging Face."},
+  {id:15,title:"LLM Engineer's Handbook",author:"Paul Iusztin, Maxime Labonne",ano:2024,nivel:"Intermediário",tema:"LLMs / RAG / Deploy",status:"Na fila",resumo:"Engenharia para construir, ajustar e operar sistemas baseados em LLMs."},
+  {id:16,title:"Building ML Powered Applications",author:"Emmanuel Ameisen",ano:2020,nivel:"Intermediário",tema:"Produto de ML",status:"Na fila",resumo:"Da ideia ao produto: como transformar modelos de ML em produtos reais."},
+  {id:17,title:"Designing Machine Learning Systems",author:"Chip Huyen",ano:2022,nivel:"Intermediário",tema:"Design de sistemas de ML",status:"Na fila",resumo:"Projetar, construir e operar sistemas de ML em produção."},
+  {id:18,title:"Practical MLOps",author:"Noah Gift, Alfredo Deza",ano:2021,nivel:"Intermediário",tema:"MLOps / Deploy",status:"Na fila",resumo:"CI/CD para modelos de ML, monitoramento, pipelines e deploy em cloud."},
+  {id:19,title:"AI Engineering",author:"Chip Huyen",ano:2025,nivel:"Intermediário",tema:"Engenharia de IA / LLMs",status:"Na fila",resumo:"Foundation models em produção: RAG, agentes, fine-tuning e governança."},
+];
+
+let activeFilter = {k:'',v:''};
+let selectedBook = null;
+let chatHistory = [];
+let folderName = localStorage.getItem('lib_folder') || 'Biblioteca IA';
+let apiKey = localStorage.getItem('lib_apikey') || '';
+
+// Load saved statuses
+try {
+  const s = JSON.parse(localStorage.getItem('lib_statuses')||'{}');
+  BOOKS.forEach(b=>{ if(s[b.id]) b.status=s[b.id]; });
+} catch(e){}
+
+function saveStatus(id, val) {
+  try {
+    const s = JSON.parse(localStorage.getItem('lib_statuses')||'{}');
+    s[id]=val; localStorage.setItem('lib_statuses', JSON.stringify(s));
+  } catch(e){}
+}
+
+function saveFolder() {
+  folderName = document.getElementById('folder-input').value.trim() || 'Biblioteca IA';
+  localStorage.setItem('lib_folder', folderName);
+  const el = document.getElementById('folder-saved');
+  el.style.display='block'; setTimeout(()=>el.style.display='none',2000);
+}
+
+function saveApiKey() {
+  apiKey = document.getElementById('api-key-input').value.trim();
+  localStorage.setItem('lib_apikey', apiKey);
+  const el = document.getElementById('api-saved');
+  el.style.display='block'; setTimeout(()=>el.style.display='none',2000);
+}
+
+function renderStats() {
+  const fila = BOOKS.filter(b=>b.status==='Na fila').length;
+  const lendo = BOOKS.filter(b=>b.status==='Lendo').length;
+  const done = BOOKS.filter(b=>b.status==='Concluído').length;
+  document.getElementById('stats').innerHTML = `
+    <div class="stat"><div class="stat-num">${BOOKS.length}</div><div class="stat-label">Total</div></div>
+    <div class="stat"><div class="stat-num">${fila}</div><div class="stat-label">Na fila</div></div>
+    <div class="stat"><div class="stat-num">${lendo}</div><div class="stat-label">Lendo</div></div>
+    <div class="stat"><div class="stat-num">${done}</div><div class="stat-label">Concluídos</div></div>`;
+  document.getElementById('cnt-fila').textContent=fila;
+  document.getElementById('cnt-lendo').textContent=lendo;
+  document.getElementById('cnt-done').textContent=done;
+}
+
+function renderGrid() {
+  const q = document.getElementById('search').value.toLowerCase();
+  const filtered = BOOKS.filter(b=>{
+    const mq = !q || b.title.toLowerCase().includes(q)||b.author.toLowerCase().includes(q)||b.tema.toLowerCase().includes(q);
+    const mf = !activeFilter.v || b[activeFilter.k]===activeFilter.v;
+    return mq && mf;
+  });
+  document.getElementById('nav-count').textContent = filtered.length;
+  if(!filtered.length){
+    document.getElementById('grid').innerHTML='<div class="empty">Nenhum livro encontrado.</div>'; return;
+  }
+  document.getElementById('grid').innerHTML = filtered.map(b=>`
+    <div class="card">
+      <div class="card-title">${b.title}</div>
+      <div class="card-author">${b.author} · ${b.ano}</div>
+      <div class="card-resumo">${b.resumo}</div>
+      <div class="card-footer">
+        <span class="badge badge-nivel">${b.nivel}</span>
+        <select class="status-select" onchange="changeStatus(${b.id},this.value)">
+          <option ${b.status==='Na fila'?'selected':''}>Na fila</option>
+          <option ${b.status==='Lendo'?'selected':''}>Lendo</option>
+          <option ${b.status==='Concluído'?'selected':''}>Concluído</option>
+        </select>
+      </div>
+    </div>`).join('');
+}
+
+function changeStatus(id, val) {
+  BOOKS.find(b=>b.id===id).status=val;
+  saveStatus(id,val); renderStats();
+}
+
+function setFilter(k,v) {
+  activeFilter={k,v};
+  document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  renderGrid();
+}
+
+function showPage(p) {
+  document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
+  document.getElementById('page-'+p).classList.add('active');
+  if(p==='chat'){ renderChatBooks(); document.getElementById('folder-input').value=folderName; if(apiKey) document.getElementById('api-key-input').value=apiKey; }
+}
+
+function renderChatBooks() {
+  document.getElementById('book-list-chat').innerHTML = BOOKS.map(b=>`
+    <button class="book-btn ${selectedBook===b.id?'active':''}" onclick="selectBook(${b.id})">${b.title}</button>`).join('');
+}
+
+function selectBook(id) {
+  selectedBook=id; chatHistory=[];
+  const b=BOOKS.find(x=>x.id===id);
+  const ctx=document.getElementById('chat-context');
+  ctx.textContent=`📖 ${b.title} — buscando PDF na pasta "${folderName}" do Drive`;
+  ctx.classList.add('visible');
+  document.getElementById('messages').innerHTML=`
+    <div class="msg msg-ai">
+      <div class="msg-label">IA</div>
+      <div class="msg-bubble">Pronto para responder sobre <strong>${b.title}</strong>. O que você quer saber?</div>
+    </div>`;
+  renderChatBooks();
+}
+
+async function sendMsg() {
+  const input=document.getElementById('chat-input');
+  const q=input.value.trim();
+  if(!q||!selectedBook) return;
+  if(!apiKey){ alert('Configure sua chave da API Anthropic primeiro.'); return; }
+
+  const b=BOOKS.find(x=>x.id===selectedBook);
+  input.value='';
+  const msgs=document.getElementById('messages');
+  msgs.innerHTML+=`<div class="msg msg-user"><div class="msg-label">Você</div><div class="msg-bubble">${q}</div></div>`;
+  msgs.innerHTML+=`<div class="msg msg-ai" id="loading"><div class="msg-label">IA</div><div class="msg-bubble"><div class="dot-loader"><span></span><span></span><span></span></div></div></div>`;
+  msgs.scrollTop=msgs.scrollHeight;
+
+  chatHistory.push({role:'user',content:q});
+
+  const system=`Você é um assistente especializado em IA e Machine Learning com conhecimento profundo sobre "${b.title}" de ${b.author} (${b.ano}).
+
+Tema: ${b.tema}. Nível: ${b.nivel}.
+Resumo: ${b.resumo}
+
+Você está integrado com o Google Drive do usuário (pasta: "${folderName}"). Responda como um especialista neste livro — cite capítulos, conceitos, exemplos e código quando relevante. Seja direto e preciso. Responda sempre em português.`;
+
+  try {
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system,messages:chatHistory})
+    });
+    const data=await res.json();
+    if(data.error){ throw new Error(data.error.message); }
+    const reply=data.content?.[0]?.text||'Sem resposta.';
+    chatHistory.push({role:'assistant',content:reply});
+    document.getElementById('loading').outerHTML=`<div class="msg msg-ai"><div class="msg-label">IA</div><div class="msg-bubble">${reply}</div></div>`;
+  } catch(e) {
+    document.getElementById('loading').outerHTML=`<div class="msg msg-ai"><div class="msg-label">IA</div><div class="msg-bubble" style="color:#e06c6c">Erro: ${e.message}</div></div>`;
+  }
+  msgs.scrollTop=msgs.scrollHeight;
+}
+
+renderStats();
+renderGrid();
+</script>
+</body>
+</html>
