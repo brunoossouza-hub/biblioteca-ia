@@ -259,7 +259,7 @@ function saveStatus(id,v){try{const s=JSON.parse(localStorage.getItem('lib_st')|
 
 // RAG: get query embedding
 async function getQueryEmbedding(text,geminiKey){
-  const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-exp-03-07:embedContent?key=${geminiKey}`,{
+  const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key=${geminiKey}`,{
     method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({model:'models/text-embedding-004',content:{parts:[{text}]}})
   });
@@ -294,7 +294,7 @@ PERGUNTA: ${question}
 
 Responda em português de forma clara e precisa. Cite os livros quando relevante. Se os trechos não forem suficientes para responder completamente, diga isso e complete com seu conhecimento geral.`;
 
-  const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`,{
+  const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`,{
     method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({contents:[{role:'user',parts:[{text:prompt}]}]})
   });
