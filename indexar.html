@@ -188,7 +188,7 @@ async function extractTextFromPDF(fileId,fileName,geminiKey){
     r.readAsDataURL(blob);
   });
   // Use Gemini to extract text
-  const extractRes=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`,{
+  const extractRes=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`,{
     method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({contents:[{role:'user',parts:[{inline_data:{mime_type:'application/pdf',data:base64}},{text:'Extract all text content from this PDF. Return only the raw text, no formatting, no commentary. Include all chapters, sections and paragraphs.'}]}]})
   });
