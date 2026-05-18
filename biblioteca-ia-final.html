@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Biblioteca IA</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+:root {
+  --bg:#0f0f0f;--bg2:#181818;--bg3:#222;--border:#2a2a2a;--border2:#3a3a3a;
+  --text:#e4e0d8;--text2:#8a877f;--text3:#4a4845;
+  --accent:#c8a96e;--accent2:#a08852;
+  --green:#5aad7a;--green-bg:#0e2018;
+  --blue:#5a90d4;--blue-bg:#0a1828;
+  --amber:#d4903a;--amber-bg:#1e1408;
+  --red:#d46060;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Georgia',serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+.shell{display:flex;min-height:100vh;}
+.sidebar{width:220px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--border);padding:1.5rem 0;position:fixed;height:100vh;overflow-y:auto;}
+.main{margin-left:220px;flex:1;padding:2rem 2rem;max-width:1000px;}
+
+.logo{padding:0 1.25rem 1.25rem;border-bottom:1px solid var(--border);margin-bottom:1.25rem;}
+.logo h1{font-size:14px;font-weight:normal;color:var(--accent);}
+.logo p{font-size:11px;color:var(--text3);margin-top:3px;font-family:sans-serif;}
+.nav-sec{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;padding:0 1.25rem;margin-bottom:5px;margin-top:1rem;font-family:sans-serif;}
+.nav-item{display:flex;align-items:center;gap:8px;padding:7px 1.25rem;font-size:13px;color:var(--text2);cursor:pointer;border-left:2px solid transparent;font-family:sans-serif;transition:all .15s;}
+.nav-item:hover{color:var(--text);background:var(--bg3);}
+.nav-item.active{color:var(--accent);border-left-color:var(--accent);background:rgba(200,169,110,.06);}
+.nav-count{margin-left:auto;font-size:11px;background:var(--bg3);padding:2px 7px;border-radius:20px;color:var(--text3);}
+.nav-sep{border:none;border-top:1px solid var(--border);margin:.75rem 0;}
+
+.page{display:none;}.page.active{display:block;}
+.page-chat.active{display:flex;flex-direction:column;}
+
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1.5rem;}
+.stat{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:.875rem 1rem;}
+.stat-num{font-size:24px;color:var(--text);}
+.stat-label{font-size:11px;color:var(--text3);margin-top:3px;text-transform:uppercase;letter-spacing:.05em;font-family:sans-serif;}
+
+.toolbar{display:flex;gap:8px;margin-bottom:1.25rem;flex-wrap:wrap;}
+.toolbar input,.toolbar select{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:8px 12px;color:var(--text);font-size:13px;font-family:sans-serif;outline:none;}
+.toolbar input{flex:1;min-width:180px;}
+.toolbar input::placeholder{color:var(--text3);}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:1.125rem;transition:border-color .2s;}
+.card:hover{border-color:var(--border2);}
+.card-title{font-size:14px;color:var(--text);line-height:1.4;margin-bottom:3px;}
+.card-author{font-size:12px;color:var(--text3);margin-bottom:8px;font-family:sans-serif;}
+.card-resumo{font-size:12px;color:var(--text2);line-height:1.5;margin-bottom:10px;font-family:sans-serif;}
+.card-footer{display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
+.badge{font-size:11px;padding:3px 8px;border-radius:20px;font-family:sans-serif;}
+.badge-nivel{background:transparent;color:var(--text3);border:1px solid var(--border);}
+.status-sel{font-size:11px;background:var(--bg);border:1px solid var(--border);border-radius:20px;padding:3px 8px;color:var(--text2);font-family:sans-serif;cursor:pointer;outline:none;margin-left:auto;}
+.empty{text-align:center;padding:3rem;color:var(--text3);font-size:14px;font-family:sans-serif;grid-column:1/-1;}
+
+/* Config page */
+.config-page{max-width:600px;}
+.config-section{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:1.5rem;margin-bottom:1.25rem;}
+.config-section h3{font-size:14px;font-weight:normal;color:var(--text);margin-bottom:6px;}
+.config-section p{font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:1rem;font-family:sans-serif;}
+.config-section a{color:var(--blue);}
+.field-row{display:flex;gap:8px;margin-bottom:8px;}
+.field-row input{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:9px 12px;color:var(--text);font-size:13px;font-family:sans-serif;outline:none;}
+.field-row input::placeholder{color:var(--text3);}
+.field-label{font-size:11px;color:var(--text3);margin-bottom:5px;font-family:sans-serif;text-transform:uppercase;letter-spacing:.05em;}
+.saved{font-size:12px;color:var(--green);margin-top:6px;display:none;font-family:sans-serif;}
+.status-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:5px;}
+.dot-ok{background:var(--green);}.dot-no{background:var(--text3);}
+
+/* Chat */
+.chat-wrap{display:flex;gap:1.25rem;height:calc(100vh - 120px);}
+.book-panel{width:200px;flex-shrink:0;overflow-y:auto;}
+.book-panel h3{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:8px;font-family:sans-serif;font-weight:normal;}
+.book-btn{width:100%;text-align:left;background:none;border:none;padding:7px 8px;border-radius:6px;font-size:12px;color:var(--text2);cursor:pointer;font-family:sans-serif;line-height:1.4;transition:all .15s;}
+.book-btn:hover{background:var(--bg3);color:var(--text);}
+.book-btn.active{background:rgba(200,169,110,.1);color:var(--accent);border-left:2px solid var(--accent);}
+.chat-main{flex:1;display:flex;flex-direction:column;min-width:0;}
+.chat-context{font-size:12px;color:var(--text3);background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:7px 10px;margin-bottom:8px;font-family:sans-serif;display:none;}
+.chat-context.vis{display:block;}
+.messages{flex:1;overflow-y:auto;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:1.125rem;margin-bottom:10px;}
+.msg{margin-bottom:14px;}
+.msg-label{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:4px;font-family:sans-serif;}
+.bubble{display:inline-block;padding:9px 13px;border-radius:6px;font-size:14px;line-height:1.6;max-width:88%;font-family:sans-serif;}
+.msg-user .msg-label{text-align:right;}
+.msg-user .bubble{background:rgba(200,169,110,.12);color:var(--text);border:1px solid rgba(200,169,110,.2);float:right;}
+.msg-ai .bubble{background:var(--bg3);color:var(--text);border:1px solid var(--border);white-space:pre-wrap;}
+.clearfix{clear:both;}
+.input-row{display:flex;gap:8px;}
+.input-row input{flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:10px 14px;color:var(--text);font-size:14px;font-family:sans-serif;outline:none;}
+.input-row input:focus{border-color:var(--accent2);}
+.input-row input::placeholder{color:var(--text3);}
+.btn{background:var(--accent);color:var(--bg);border:none;border-radius:6px;padding:10px 18px;font-size:13px;cursor:pointer;font-family:sans-serif;transition:background .15s;white-space:nowrap;}
+.btn:hover{background:var(--accent2);}
+.btn:disabled{background:var(--bg3);color:var(--text3);cursor:not-allowed;}
+.btn-sm{font-size:12px;padding:7px 12px;}
+.dot-loader{display:inline-flex;gap:4px;align-items:center;}
+.dot-loader span{width:5px;height:5px;border-radius:50%;background:var(--text3);animation:pulse 1.2s infinite;}
+.dot-loader span:nth-child(2){animation-delay:.2s;}
+.dot-loader span:nth-child(3){animation-delay:.4s;}
+@keyframes pulse{0%,60%,100%{opacity:.3;transform:scale(.8)}30%{opacity:1;transform:scale(1)}}
+
+@media(max-width:700px){.sidebar{display:none;}.main{margin-left:0;padding:1rem;}.stats{grid-template-columns:repeat(2,1fr);}.chat-wrap{flex-direction:column;height:auto;}.book-panel{width:100%;height:100px;overflow-x:auto;display:flex;gap:6px;}.book-btn{white-space:nowrap;width:auto;}}
+</style>
+</head>
+<body>
+<div class="shell">
+<aside class="sidebar">
+  <div class="logo"><h1>Biblioteca IA</h1><p id="user-name">Bruno Baptista Luz</p></div>
+  <div class="nav-sec">Navegação</div>
+  <div class="nav-item active" onclick="showPage('library')">
+    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+    Biblioteca <span class="nav-count" id="nav-total">19</span>
+  </div>
+  <div class="nav-item" onclick="showPage('chat')">
+    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+    Perguntar à IA
+  </div>
+  <div class="nav-item" onclick="showPage('config')">
+    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+    Configurações
+  </div>
+  <hr class="nav-sep">
+  <div class="nav-sec">Filtrar</div>
+  <div class="nav-item" onclick="filterBy('','')">Todos</div>
+  <div class="nav-item" onclick="filterBy('status','Na fila')">Na fila <span class="nav-count" id="cnt-fila">0</span></div>
+  <div class="nav-item" onclick="filterBy('status','Lendo')">Lendo <span class="nav-count" id="cnt-lendo">0</span></div>
+  <div class="nav-item" onclick="filterBy('status','Concluído')">Concluídos <span class="nav-count" id="cnt-done">0</span></div>
+</aside>
+
+<main class="main">
+
+<!-- LIBRARY -->
+<div class="page active" id="page-library">
+  <div class="stats" id="stats"></div>
+  <div class="toolbar">
+    <input type="text" id="search" placeholder="Buscar por título, autor ou tema..." oninput="renderGrid()"/>
+    <select onchange="activeF={k:'nivel',v:this.value};renderGrid()">
+      <option value="">Todos os níveis</option>
+      <option>Introdutório</option><option>Intermediário</option><option>Avançado</option>
+    </select>
+  </div>
+  <div class="grid" id="grid"></div>
+</div>
+
+<!-- CHAT -->
+<div class="page page-chat" id="page-chat">
+  <div class="chat-wrap">
+    <div class="book-panel">
+      <h3>Livro</h3>
+      <div id="book-list"></div>
+    </div>
+    <div class="chat-main">
+      <div class="chat-context" id="chat-ctx"></div>
+      <div class="messages" id="messages">
+        <div class="msg msg-ai">
+          <div class="msg-label">IA</div>
+          <div class="bubble">Selecione um livro e faça sua pergunta. Vou buscar o PDF no seu Google Drive e responder com base no conteúdo real.</div>
+        </div>
+      </div>
+      <div class="input-row">
+        <input type="text" id="chat-input" placeholder="Faça uma pergunta sobre o livro..." onkeydown="if(event.key==='Enter')sendMsg()"/>
+        <button class="btn" id="send-btn" onclick="sendMsg()">Enviar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIG -->
+<div class="page" id="page-config">
+  <div class="config-page">
+    <div class="config-section">
+      <h3>🤖 Chave da API Gemini</h3>
+      <p>Obtenha sua chave gratuita em <a href="https://aistudio.google.com/app/apikey" target="_blank">aistudio.google.com</a>. Ela é salva apenas no seu browser.</p>
+      <div class="field-label">Chave Gemini</div>
+      <div class="field-row">
+        <input type="password" id="inp-gemini" placeholder="AIzaSy..."/>
+        <button class="btn btn-sm" onclick="saveCfg()">Salvar</button>
+      </div>
+      <div id="saved-gemini" class="saved">✓ Salvo</div>
+    </div>
+
+    <div class="config-section">
+      <h3>📁 Google Drive — acesso aos PDFs</h3>
+      <p>O app precisa do <strong>OAuth Client ID</strong> que você criou no Google Cloud Console para acessar sua pasta do Drive. Veja o guia completo para criar o seu.</p>
+      <div class="field-label">OAuth Client ID</div>
+      <div class="field-row">
+        <input type="text" id="inp-clientid" placeholder="123456789-abc...apps.googleusercontent.com"/>
+      </div>
+      <div class="field-label" style="margin-top:8px;">ID da pasta no Drive</div>
+      <div class="field-row">
+        <input type="text" id="inp-folderid" placeholder="1aBcDeFgHiJkLmNoPqRsTuVwX"/>
+        <button class="btn btn-sm" onclick="saveCfg()">Salvar</button>
+      </div>
+      <div id="saved-drive" class="saved">✓ Salvo</div>
+    </div>
+
+    <div class="config-section">
+      <h3>📊 Status da configuração</h3>
+      <p id="status-line" style="font-family:sans-serif;font-size:13px;"></p>
+      <button class="btn btn-sm" onclick="initDriveAuth()" id="btn-auth" style="margin-top:10px;display:none;">Conectar Google Drive</button>
+    </div>
+  </div>
+</div>
+
+</main>
+</div>
+
+<script>
+const BOOKS=[
+  {id:1,title:"Machine Learning for Humans",author:"Vishal Maini, Samer Sabri",ano:2017,nivel:"Introdutório",tema:"Fundamentos de ML",status:"Na fila",resumo:"Guia acessível cobrindo todo o espectro de ML com linguagem simples."},
+  {id:2,title:"Machine Learning for Absolute Beginners",author:"Oliver Theobald",ano:2017,nivel:"Introdutório",tema:"Introdução a ML",status:"Na fila",resumo:"Introdução sem pré-requisitos matemáticos ou de programação."},
+  {id:3,title:"Mathematics for Machine Learning",author:"Deisenroth, Faisal, Ong",ano:2020,nivel:"Intermediário",tema:"Matemática / Álgebra linear",status:"Na fila",resumo:"Álgebra linear, cálculo diferencial, probabilidade e otimização para ML."},
+  {id:4,title:"Machine Learning: A Probabilistic Perspective",author:"Kevin P. Murphy",ano:2012,nivel:"Avançado",tema:"Fundamentos / Probabilidade",status:"Na fila",resumo:"Tratamento rigoroso de ML sob perspectiva probabilística."},
+  {id:5,title:"Probabilistic Machine Learning: Advanced Topics",author:"Kevin P. Murphy",ano:2023,nivel:"Avançado",tema:"ML probabilístico avançado",status:"Na fila",resumo:"Modelos de difusão, LLMs, RL profundo e inferência variacional."},
+  {id:6,title:"Pattern Recognition and Machine Learning",author:"Christopher M. Bishop",ano:2006,nivel:"Avançado",tema:"Reconhecimento de padrões",status:"Na fila",resumo:"Clássico com abordagem bayesiana. SVMs, modelos gráficos e métodos de kernel."},
+  {id:7,title:"Hands-On ML com Scikit-Learn, Keras & TensorFlow",author:"Aurélien Géron",ano:2019,nivel:"Intermediário",tema:"ML aplicado / TensorFlow",status:"Na fila",resumo:"Manual prático com Scikit-Learn, Keras e TensorFlow."},
+  {id:8,title:"Hands-On ML com Scikit-Learn & PyTorch",author:"Aurélien Géron",ano:2024,nivel:"Intermediário",tema:"ML aplicado / PyTorch",status:"Na fila",resumo:"Versão atualizada substituindo TensorFlow por PyTorch."},
+  {id:9,title:"Applied Machine Learning and AI for Engineers",author:"Jeff Prosise",ano:2022,nivel:"Intermediário",tema:"ML aplicado / Cloud",status:"Na fila",resumo:"Abordagem orientada a engenheiros com Python e serviços de cloud."},
+  {id:10,title:"Deep Learning",author:"Goodfellow, Bengio, Courville",ano:2016,nivel:"Avançado",tema:"Deep Learning / Teoria",status:"Na fila",resumo:"A Bíblia do Deep Learning. CNNs, RNNs, otimização e modelos generativos.",filename:"deep-learning-goodfellow.pdf"},
+  {id:11,title:"GANs in Action",author:"Jakub Langr, Vladimir Bok",ano:2019,nivel:"Intermediário",tema:"GANs / IA generativa",status:"Na fila",resumo:"Introdução prática a GANs com implementações em Keras.",filename:"gans-in-action.pdf"},
+  {id:12,title:"Natural Language Processing with Transformers",author:"Tunstall, von Werra, Wolf",ano:2022,nivel:"Intermediário",tema:"NLP / Transformers / Hugging Face",status:"Na fila",resumo:"Guia prático de NLP com a biblioteca Hugging Face.",filename:"nlp-with-transformers.pdf"},
+  {id:13,title:"Hands-On Large Language Models",author:"Jay Alammar, Maarten Grootendorst",ano:2024,nivel:"Intermediário",tema:"LLMs / RAG / Fine-tuning",status:"Lendo",resumo:"Como LLMs funcionam: embeddings, RAG, fine-tuning e agentes.",filename:"hands-on-llm.pdf"},
+  {id:14,title:"Hands-On Generative AI with Transformers and Diffusion Models",author:"Sanseviero, Cuenca et al.",ano:2024,nivel:"Intermediário",tema:"IA generativa / Diffusion",status:"Na fila",resumo:"Transformers e modelos de difusão num único framework.",filename:"generative-ai-transformers.pdf"},
+  {id:15,title:"LLM Engineer's Handbook",author:"Paul Iusztin, Maxime Labonne",ano:2024,nivel:"Intermediário",tema:"LLMs / RAG / Deploy",status:"Na fila",resumo:"Engenharia para construir e operar sistemas baseados em LLMs."},
+  {id:16,title:"Building ML Powered Applications",author:"Emmanuel Ameisen",ano:2020,nivel:"Intermediário",tema:"Produto de ML",status:"Na fila",resumo:"Da ideia ao produto: como transformar modelos de ML em produtos reais."},
+  {id:17,title:"Designing Machine Learning Systems",author:"Chip Huyen",ano:2022,nivel:"Intermediário",tema:"Design de sistemas de ML",status:"Na fila",resumo:"Projetar, construir e operar sistemas de ML em produção."},
+  {id:18,title:"Practical MLOps",author:"Noah Gift, Alfredo Deza",ano:2021,nivel:"Intermediário",tema:"MLOps / Deploy",status:"Na fila",resumo:"CI/CD para modelos de ML, monitoramento e deploy em cloud."},
+  {id:19,title:"AI Engineering",author:"Chip Huyen",ano:2025,nivel:"Intermediário",tema:"Engenharia de IA / LLMs",status:"Na fila",resumo:"Foundation models em produção: RAG, agentes, fine-tuning e governança."},
+];
+
+let activeF={k:'',v:''};
+let selBook=null;
+let chatHistory=[];
+let driveToken=null;
+
+// Load persisted data
+try{const s=JSON.parse(localStorage.getItem('lib_st')||'{}');BOOKS.forEach(b=>{if(s[b.id])b.status=s[b.id];});}catch(e){}
+function cfg(){try{return JSON.parse(localStorage.getItem('lib_cfg')||'{}');}catch(e){return{};}}
+function saveCfg(){
+  const c={gemini:document.getElementById('inp-gemini').value.trim(),clientId:document.getElementById('inp-clientid').value.trim(),folderId:document.getElementById('inp-folderid').value.trim()};
+  localStorage.setItem('lib_cfg',JSON.stringify(c));
+  document.getElementById('saved-gemini').style.display='block';
+  document.getElementById('saved-drive').style.display='block';
+  setTimeout(()=>{document.getElementById('saved-gemini').style.display='none';document.getElementById('saved-drive').style.display='none';},2000);
+  updateStatus();
+}
+function saveStatus(id,v){try{const s=JSON.parse(localStorage.getItem('lib_st')||'{}');s[id]=v;localStorage.setItem('lib_st',JSON.stringify(s));}catch(e){}}
+
+function updateStatus(){
+  const c=cfg();
+  const lines=[];
+  lines.push(`<span class="status-dot ${c.gemini?'dot-ok':'dot-no'}"></span>Chave Gemini: ${c.gemini?'configurada':'não configurada'}`);
+  lines.push(`<span class="status-dot ${c.clientId?'dot-ok':'dot-no'}"></span>OAuth Client ID: ${c.clientId?'configurado':'não configurado'}`);
+  lines.push(`<span class="status-dot ${c.folderId?'dot-ok':'dot-no'}"></span>ID da pasta: ${c.folderId?'configurado':'não configurado'}`);
+  lines.push(`<span class="status-dot ${driveToken?'dot-ok':'dot-no'}"></span>Drive: ${driveToken?'conectado':'não conectado'}`);
+  document.getElementById('status-line').innerHTML=lines.join('<br>');
+  document.getElementById('btn-auth').style.display=(c.clientId&&!driveToken)?'inline-block':'none';
+}
+
+// Google OAuth
+function initDriveAuth(){
+  const c=cfg();
+  if(!c.clientId){alert('Configure o Client ID primeiro.');return;}
+  const client=google.accounts.oauth2.initTokenClient({
+    client_id:c.clientId,
+    scope:'https://www.googleapis.com/auth/drive.readonly',
+    callback:(resp)=>{
+      if(resp.access_token){driveToken=resp.access_token;updateStatus();alert('Google Drive conectado com sucesso!');}
+    }
+  });
+  client.requestAccessToken();
+}
+
+// Find file in Drive folder
+async function findFileInDrive(searchTerms){
+  if(!driveToken)return null;
+  const c=cfg();
+  const q=`'${c.folderId}' in parents and mimeType='application/pdf' and trashed=false`;
+  const url=`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id,name)&pageSize=50`;
+  const res=await fetch(url,{headers:{Authorization:`Bearer ${driveToken}`}});
+  const data=await res.json();
+  if(!data.files||!data.files.length)return null;
+  // Find best match
+  const terms=searchTerms.map(t=>t.toLowerCase());
+  let best=null,bestScore=0;
+  for(const f of data.files){
+    const name=f.name.toLowerCase();
+    let score=terms.filter(t=>name.includes(t)).length;
+    if(score>bestScore){bestScore=score;best=f;}
+  }
+  return bestScore>0?best:data.files[0];
+}
+
+// Download PDF from Drive as base64
+async function downloadPdfAsBase64(fileId){
+  const url=`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`;
+  const res=await fetch(url,{headers:{Authorization:`Bearer ${driveToken}`}});
+  const blob=await res.blob();
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=()=>resolve(reader.result.split(',')[1]);
+    reader.onerror=reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+// Ask Gemini with PDF
+async function askGemini(question,book,pdfBase64){
+  const c=cfg();
+  if(!c.gemini)throw new Error('Chave Gemini não configurada. Vá em Configurações.');
+  const parts=[{text:`Você é um especialista no livro "${book.title}" de ${book.author}. Responda em português de forma clara e objetiva, citando seções e exemplos do livro quando relevante.\n\nPergunta: ${question}`}];
+  if(pdfBase64)parts.unshift({inline_data:{mime_type:'application/pdf',data:pdfBase64}});
+  const body={contents:[{role:'user',parts}]};
+  const url=`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${c.gemini}`;
+  const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const data=await res.json();
+  if(data.error)throw new Error(data.error.message);
+  return data.candidates?.[0]?.content?.parts?.[0]?.text||'Sem resposta.';
+}
+
+async function sendMsg(){
+  const input=document.getElementById('chat-input');
+  const q=input.value.trim();
+  if(!q||!selBook)return;
+  const book=BOOKS.find(b=>b.id===selBook);
+  input.value='';
+  const msgs=document.getElementById('messages');
+  msgs.innerHTML+=`<div class="msg msg-user"><div class="msg-label">Você</div><div class="bubble">${q}</div><div class="clearfix"></div></div>`;
+  msgs.innerHTML+=`<div class="msg msg-ai" id="loading-msg"><div class="msg-label">IA</div><div class="bubble"><div class="dot-loader"><span></span><span></span><span></span></div></div></div>`;
+  msgs.scrollTop=msgs.scrollHeight;
+  document.getElementById('send-btn').disabled=true;
+
+  try{
+    let pdfBase64=null;
+    const ctx=document.getElementById('chat-ctx');
+    // Try to get PDF from Drive
+    if(driveToken){
+      ctx.textContent='Buscando PDF no Drive...';ctx.classList.add('vis');
+      const searchTerms=book.title.toLowerCase().split(' ').filter(w=>w.length>3);
+      if(book.filename)searchTerms.unshift(book.filename.replace('.pdf',''));
+      const file=await findFileInDrive(searchTerms);
+      if(file){
+        ctx.textContent=`Lendo "${file.name}" do Drive...`;
+        pdfBase64=await downloadPdfAsBase64(file.id);
+        ctx.textContent=`📖 ${book.title} — lendo PDF do Drive`;
+      }else{
+        ctx.textContent=`📖 ${book.title} — PDF não encontrado no Drive, usando conhecimento geral`;
+      }
+    }else{
+      ctx.textContent=`📖 ${book.title} — Drive não conectado, usando conhecimento geral`;ctx.classList.add('vis');
+    }
+    const reply=await askGemini(q,book,pdfBase64);
+    document.getElementById('loading-msg').outerHTML=`<div class="msg msg-ai"><div class="msg-label">IA</div><div class="bubble">${reply}</div></div>`;
+  }catch(e){
+    document.getElementById('loading-msg').outerHTML=`<div class="msg msg-ai"><div class="msg-label">IA</div><div class="bubble" style="color:var(--red)">Erro: ${e.message}</div></div>`;
+  }
+  msgs.scrollTop=msgs.scrollHeight;
+  document.getElementById('send-btn').disabled=false;
+}
+
+function renderStats(){
+  const fila=BOOKS.filter(b=>b.status==='Na fila').length;
+  const lendo=BOOKS.filter(b=>b.status==='Lendo').length;
+  const done=BOOKS.filter(b=>b.status==='Concluído').length;
+  document.getElementById('stats').innerHTML=`
+    <div class="stat"><div class="stat-num">${BOOKS.length}</div><div class="stat-label">Total</div></div>
+    <div class="stat"><div class="stat-num">${fila}</div><div class="stat-label">Na fila</div></div>
+    <div class="stat"><div class="stat-num">${lendo}</div><div class="stat-label">Lendo</div></div>
+    <div class="stat"><div class="stat-num">${done}</div><div class="stat-label">Concluídos</div></div>`;
+  document.getElementById('cnt-fila').textContent=fila;
+  document.getElementById('cnt-lendo').textContent=lendo;
+  document.getElementById('cnt-done').textContent=done;
+}
+
+function renderGrid(){
+  const q=document.getElementById('search').value.toLowerCase();
+  const filtered=BOOKS.filter(b=>{
+    const mq=!q||b.title.toLowerCase().includes(q)||b.author.toLowerCase().includes(q)||b.tema.toLowerCase().includes(q);
+    const mf=!activeF.v||b[activeF.k]===activeF.v;
+    return mq&&mf;
+  });
+  document.getElementById('nav-total').textContent=filtered.length;
+  if(!filtered.length){document.getElementById('grid').innerHTML='<div class="empty">Nenhum livro encontrado.</div>';return;}
+  document.getElementById('grid').innerHTML=filtered.map(b=>`
+    <div class="card">
+      <div class="card-title">${b.title}</div>
+      <div class="card-author">${b.author} · ${b.ano}</div>
+      <div class="card-resumo">${b.resumo}</div>
+      <div class="card-footer">
+        <span class="badge badge-nivel">${b.nivel}</span>
+        <select class="status-sel" onchange="changeStatus(${b.id},this.value)">
+          <option ${b.status==='Na fila'?'selected':''}>Na fila</option>
+          <option ${b.status==='Lendo'?'selected':''}>Lendo</option>
+          <option ${b.status==='Concluído'?'selected':''}>Concluído</option>
+        </select>
+      </div>
+    </div>`).join('');
+}
+
+function changeStatus(id,v){BOOKS.find(b=>b.id===id).status=v;saveStatus(id,v);renderStats();}
+
+function filterBy(k,v){activeF={k,v};renderGrid();}
+
+function showPage(p){
+  document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
+  document.getElementById('page-'+p).classList.add('active');
+  event.currentTarget.classList.add('active');
+  if(p==='chat'){
+    document.getElementById('book-list').innerHTML=BOOKS.map(b=>`<button class="book-btn ${selBook===b.id?'active':''}" onclick="selectBook(${b.id})">${b.title}</button>`).join('');
+  }
+  if(p==='config'){
+    const c=cfg();
+    if(c.gemini)document.getElementById('inp-gemini').value=c.gemini;
+    if(c.clientId)document.getElementById('inp-clientid').value=c.clientId;
+    if(c.folderId)document.getElementById('inp-folderid').value=c.folderId;
+    updateStatus();
+  }
+}
+
+function selectBook(id){
+  selBook=id;chatHistory=[];
+  const b=BOOKS.find(x=>x.id===id);
+  document.getElementById('messages').innerHTML=`<div class="msg msg-ai"><div class="msg-label">IA</div><div class="bubble">Pronto para responder sobre <strong>${b.title}</strong>. O que você quer saber?</div></div>`;
+  document.getElementById('book-list').innerHTML=BOOKS.map(bk=>`<button class="book-btn ${selBook===bk.id?'active':''}" onclick="selectBook(${bk.id})">${bk.title}</button>`).join('');
+}
+
+renderStats();renderGrid();
+</script>
+</body>
+</html>
